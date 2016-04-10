@@ -5,26 +5,40 @@
 <p>require: 加载模块</p>
 <h3>代码示范</h3>
 <p>
-//A.js
-asdf.define(function(){
-	var a = this.require('js/B');
-	return { A: a };
+//A.js<br/ >
+asdf.define(function(){<br/ >
+	var a = this.require('js/B');<br/ >
+	return { A: a };<br/ >
+});<br/ >
+</p>
+<p>
+//B.js<br/ >
+asdf.define('B', function(){<br/ >
+	var b = this.require('js/C');<br/ >
+	return { B: b };<br/ >
+});<br/ >
+</p>
+<p>
+//C.js<br/ >
+asdf.define('C', function(){<br/ >
+	return { hello: 'world' };<br/ >
 });
-//B.js
-asdf.define('B', function(){
-	var b = this.require('js/C');
-	return { B: b };
-});
-//C.js
-asdf.define('C', function(){
-	return { hello: 'world' };
-});
+</p>
+<p>
 //D.js
+<br/ >
 asdf.define(function(){
+<br/ >
 	return this.require('js/B');
-});
+	<br/ >
+});<br/ >
+</p>
+<p>
 //main.js
+<br/ >
 asdf.require('js/A', function(a){
+<br/ >
 	console.log(a);
+	<br/ >
 });
 </p>
