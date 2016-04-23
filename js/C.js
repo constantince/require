@@ -1,3 +1,3 @@
-asdf.define('C', function(){
+Salut.define('C', function(){
 	return { hello: 'world' };
 });

@@ -1,6 +1,6 @@
-var asdf = {};
-(function(doc, asdf) {
-	asdf.showAllStack = function() {
+var Salut = {};
+(function(doc, Salut) {
+	Salut.showAllStack = function() {
 		console.log(modules);
 		console.log(excuteStack);
 		console.log(pathAndFileName);
@@ -14,15 +14,24 @@ var asdf = {};
 	var excuteStack = [];
 	//文件名对应关系表
 	var pathAndFileName = {};
-	// var strackFun = [];
-	
-	function _String(string, func) {
+	// sring：模块定义名称 func：模块的返回函数  others：提前声明的依赖数组
+	function _String(string, func, others) {
+		//得到分析路径
 		string = _analyseName(string);
-		var depends = _analyseDepend(func) || [];
-		// debugger;
+		//得到函数中的依赖文件名 如果依赖文件已经缓存，那么就无需返回依赖数组了。直接执行返回的函数
+		var depends = _analyseDepend(func, others||[]);
+		//将已经加载的模块存入栈中
 		excuteStack.push(function() {
-			return modules[string] = func.call(asdf);
+			//引入函数需要的参数
+			var params = [];
+			if(others && others.length > 0) {
+				others.forEach(function(v){
+					params.push(modules[_analyseName(v)]);
+				});
+			}
+			return modules[string] = func.apply(Salut, params);
 		});
+		//执行依定义方法，得到return的模块
 		_excuteRequire(depends);
 		for (var i = 0, l = depends.length; i < l; i++) {
 			(function(i) {
@@ -35,18 +44,19 @@ var asdf = {};
 			})(i);
 		}
 	}
-
+	//define的第一个参数为数组的情况
 	function _Array(array, func) {
-		for (var i = 0, l = array.length; i < l; i++) {
-			_String(array[i], func);
-		}
+		_Function(func, array);
+		// for (var i = 0, l = array.length; i < l; i++) {
+		// 	_String(array[i], func);
+		// }
 	}
-
-	function _Function(func) {
+	//define的第一个参数为函数
+	function _Function(func, others) {
 		var name = _analyseName(_getCurrentScript().src);
-		_String(name, func);
+		_String(name, func, others||[]);
 	}
-	//to define functions get many params 
+	//策略模式处理不同参数的问题
 	var defineParamObj = {
 		'String': _String,
 		'Array': _Array,
@@ -113,7 +123,7 @@ var asdf = {};
 		function _trigger(name, arg) {
 			for (var i = 0, l = func.length; i < l; i++) {
 				if (func[i].name === name) {
-					func[i].callback.call(asdf, arg);
+					func[i].callback.call(Salut, arg);
 				}
 			}
 			_clear();
@@ -122,8 +132,6 @@ var asdf = {};
 		function _clear() {
 			func = [];
 		}
-
-
 
 		return {
 			on: _on,
@@ -201,28 +209,35 @@ var asdf = {};
 	 * @param url script(func)
 	 * @returns {array}
 	 */
-	function _analyseDepend(func) {
+	//分析文件代码中的加载情况
+	function _analyseDepend(func, others) {
 		var firstReg = /\.require\((\"|\')[^\)]*(\"|\')\)/g,
 			secondReg = /\((\"|\')[^\)]*(\"|\')\)/g,
 			lastReplaceRge = /\((\"|\')|(\"|\')\)/g;
 		var string = func.toString();
-		var allFiles = string.match(firstReg);
+		var allFiles = (string.match(firstReg) || []).concat(others);
 		var newArr = [];
-		if (!allFiles) {
-			return '';
-		}
+		// if (!allFiles) { allFiles = []; }
+		//将预先定义的依赖加入
+		// allFiles = allFiles.concat(others);
+		if(!allFiles.length) return newArr;
 		allFiles.map(function(v) {
-			var m = v.match(secondReg)[0].replace(lastReplaceRge, '');
+			var m;
+			if(m = v.match(secondReg)) {
+			 	m = m[0].replace(lastReplaceRge, '');
+			}else{
+				m = v;	
+			}
 			//只有在异步加载的情况下需要 返回解析依赖
 			if(!modules[_analyseName(m)]) {
 				newArr.push(m);	
 			}
 		});
-		if(newArr.length > 0) {
+		// if(newArr.length > 0) {
 			return newArr;
-		}else{
-			return ''
-		}
+		// }else{
+		// 	return ''
+		// }
 	}
 	/**
 	 * To analyseDepend module's path and name;
@@ -290,11 +305,10 @@ var asdf = {};
 	 */
 	function _scriptLoaded(script) {
 		head.removeChild(script);
-		// this !== window && this.next();
 		excuteChain.next();
 	}
 	/**
-	 *
+	 *定义模块的方法
 	 * @param modules name or function(string|array|func)
 	 * @returns {callstack}
 	 */
@@ -339,6 +353,6 @@ var asdf = {};
 		require(entreScriptName);
 	}
 
-	asdf.define = define;
-	asdf.require = require;
-})(document, asdf);
+	Salut.define = define;
+	Salut.require = require;
+})(document, Salut);
