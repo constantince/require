@@ -1,3 +1,3 @@
 Salut.define(function(){
-	return this.require('js/A');
+	return {D: 'i am d..........'}
 });

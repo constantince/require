@@ -1,11 +1,7 @@
 var Salut = {};
 (function(doc, Salut) {
 	Salut.showAllStack = function() {
-		console.log(modules);
-		console.log(excuteStack);
-		console.log(pathAndFileName);
-		console.log(entreScriptName);
-
+		console.log(dependArray)
 	}
 	var modules = {};
 	var entreScriptName;
@@ -14,12 +10,22 @@ var Salut = {};
 	var excuteStack = [];
 	//文件名对应关系表
 	var pathAndFileName = {};
+	//单次依赖关系数组
+	var dependArray = [];
+
 	// sring：模块定义名称 func：模块的返回函数  others：提前声明的依赖数组
 	function _String(string, func, others) {
 		//得到分析路径
 		string = _analyseName(string);
 		//得到函数中的依赖文件名 如果依赖文件已经缓存，那么就无需返回依赖数组了。直接执行返回的函数
 		var depends = _analyseDepend(func, others||[]);
+		//将依赖存入全局数组 
+		if(dependArray.indexOf(string) < 0) {
+			dependArray.push(string);	
+		}
+		dependArray = dependArray.concat((depends||[]).map(function(v) {
+			return v.split('/')[1];
+		}));
 		//将已经加载的模块存入栈中
 		excuteStack.push(function() {
 			//引入函数需要的参数
@@ -31,25 +37,21 @@ var Salut = {};
 			}
 			return modules[string] = func.apply(Salut, params);
 		});
+
 		//执行依定义方法，得到return的模块
-		_excuteRequire(depends);
+		_excuteRequire(string);
 		for (var i = 0, l = depends.length; i < l; i++) {
 			(function(i) {
 				excuteChain.after(function() {
 					var c = require(depends[i]);
-					if(c) {
-						this.next();
-					};
-				});
-			})(i);
+					if(c) { this.next(); }
+				})
+			})(i)
 		}
 	}
 	//define的第一个参数为数组的情况
 	function _Array(array, func) {
 		_Function(func, array);
-		// for (var i = 0, l = array.length; i < l; i++) {
-		// 	_String(array[i], func);
-		// }
 	}
 	//define的第一个参数为函数
 	function _Function(func, others) {
@@ -62,49 +64,21 @@ var Salut = {};
 		'Array': _Array,
 		'Function': _Function
 	}
-	/*
-	var defineParamObj = {
-	    'String': function(string, func) {
-	        string = _analyseName(string);
-	        var depends = _analyseDepend(func) || [];
-	        // debugger;
-	        excuteStack.push(function() {
-	           return modules[string] = func();
-	        });
-	        _excuteRequire(depends);
-	        for (var i = 0, l = depends.length; i < l; i++) {
-	            (function(i) {
-	                excuteChain.after(function() {
-	                    require(depends[i]);
-	                });
-	            })(i);
-	        }
-	        // excuteChain.excute();
-	    },
-	    'Array': function(array, func) {
-	        for (var i = 0, l = array.length; i < l; i++) {
-	            this['String'](array[i], func);
-	        }
-	    },
-	    'Function': function(func) {
-	    	var name = _analyseName(_getCurrentScript().src);
-	    	this['String'](name, func);
-	    }
-	}
-	*/
 	/**
 	 * to excute all func require;
 	 * @param depends length
 	 * @returns 
 	 */
-	function _excuteRequire(depends) {
-		if (depends.length === 0) {
+	function _excuteRequire(string) {
+		//当依赖意见执行到之后一个之后 可以放回callabck了
+		if (dependArray.length - 1 === dependArray.indexOf(string)) {
 			var u = excuteStack.length;
 			while (u--) {
 				var params = excuteStack[u]();;
 				if (u === 0) {
 					Events.trigger('excute', params);
 					excuteStack = [];
+					dependArray = [];
 				}
 			}
 		}
@@ -124,9 +98,9 @@ var Salut = {};
 			for (var i = 0, l = func.length; i < l; i++) {
 				if (func[i].name === name) {
 					func[i].callback.call(Salut, arg);
+					func.splice(i, 1);
 				}
 			}
-			_clear();
 		}
 
 		function _clear() {
@@ -147,6 +121,7 @@ var Salut = {};
 	// var Chain = (function() {
 	function _Chain() {
 		this.cache = [];
+		this.cur = 0;
 	}
 	/**
 	 * add function to order stack
@@ -155,7 +130,7 @@ var Salut = {};
 	 */
 	_Chain.prototype.after = function(fn) {
 			this.cache.push(fn);
-			this.cur = 0;
+			// this.cur = 0;
 			return this;
 		}
 		/**
@@ -202,8 +177,6 @@ var Salut = {};
 
 
 	var excuteChain = new _Chain();
-	// return new _Chain();
-	// })();
 	/**
 	 * To analyseDepend those func who was each depend on others;
 	 * @param url script(func)
@@ -233,11 +206,7 @@ var Salut = {};
 				newArr.push(m);	
 			}
 		});
-		// if(newArr.length > 0) {
-			return newArr;
-		// }else{
-		// 	return ''
-		// }
+		return newArr;
 	}
 	/**
 	 * To analyseDepend module's path and name;
@@ -245,6 +214,7 @@ var Salut = {};
 	 * @returns {string}
 	 */
 	function _analyseName(path) {
+		if(typeof path === 'object') path = path[0];
 		var needAnalyse = path.indexOf('/') > -1 ? true : false;
 		var newPath = path;
 		if (needAnalyse) {

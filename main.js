@@ -4,16 +4,17 @@
 // });
 
 
-Salut.require('js/A', function(a){
-	//console.log(a);
-});
+// Salut.require('js/A', function(a){
+// 	//console.log(a);
+// });
 
 document.addEventListener('click', function(){
 	// asdf.require('js/D', function(d){
 	// 	console.log(d);
 	// 	console.log(this);
 	// });
-	Salut.require('js/E', function(e){
+	Salut.require(['js/A'], function(e){
 		console.log(e);
+    e.send('N');
 	})
 });

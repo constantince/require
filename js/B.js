@@ -1,5 +1,4 @@
-Salut.define('B', function(){
-	var b = this.require('js/C');
-	// console.log(document.currentScript.src);
-	return { B: b };
+Salut.define(['js/D', 'js/H'], function(d, h){
+	var c = this.require('js/C');
+	return { C: c, D: d, H: h };
 });
